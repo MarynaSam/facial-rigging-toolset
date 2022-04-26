@@ -1,6 +1,6 @@
 # facial-rigging-toolset
 
-This toolset automations for facial rigging setup.
+This toolset provides automations for facial rigging setup.
 
 ## Installation
 Add "python" directory to PYTHONPATH environment variable.
