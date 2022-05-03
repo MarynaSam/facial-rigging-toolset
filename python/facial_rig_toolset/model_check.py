@@ -5,10 +5,8 @@ import pprint
 from maya import mel
 import maya.cmds as mc
 
-model_height_target = 175
-models_selected = []
-bboxes = {}
-material_parms = {
+
+MATERIAL_PARMS = {
     "skin": {
         "color": [0.734, 0.498327, 0.404434],
         "specularRollOff": 0.4,
@@ -109,9 +107,27 @@ material_parms = {
 }
 
 
-# fix the character scale and zero out the pivots
+def zero_out_pivots():
 
-def fix_character_scale_and_zero_out_pivots():
+    models_selected = mc.ls(selection=True, type='transform')
+
+    mc.xform(models_selected, piv=(0, 0, 0), ws=True)
+
+
+def fix_character_scale_and_zero_out_pivots(model_height_target=175):
+    '''
+    fix the character scale and zero out the pivots
+
+    it works only if the character has a body
+    as the script calculates the bounding box for the whole character from the feet to the head
+
+    for only head the calculations will be incorrect as the head is the fifth part of the body
+    but will be considered as the whole
+    '''
+    models_selected = mc.ls(selection=True, type='transform')
+
+    if not models_selected:
+        print("Please, select the model")
 
     bbox = mc.exactWorldBoundingBox(models_selected)
 
@@ -128,81 +144,104 @@ def fix_character_scale_and_zero_out_pivots():
              models_selected, ws=True, r=True)
 
 
-# set Automatic UVs
-
 def auto_uvs():
+    '''
+    set Automatic UVs
+    '''
+    models_selected = mc.ls(selection=True, type='transform')
+
+    if not models_selected:
+        print("Please, select the model")
+
     for model in models_selected:
         mc.polyAutoProjection(f"{model}.f[*]")
 
 
-# soften Edges
+def soften_edges():
+    '''
+    soften Edges
+    '''
+    models_selected = mc.ls(selection=True, type='transform')
 
-def softEdges():
+    if not models_selected:
+        print("Please, select the model")
+
     for model in models_selected:
         mc.polySoftEdge(model, angle=180)
 
-    mc.select(cl=True)
 
-
-# freeze transformation
 
 def freeze_tranfsorm():
+    '''
+    freeze transformation
+    '''
+    models_selected = mc.ls(selection=True, type='transform')
+
+    if not models_selected:
+        print("Please, select the model")
+
     for model in models_selected:
         mc.makeIdentity(model, apply=True, t=1, r=1, s=1, n=0, pn=1)
 
 
-# delete history
-
 def delete_history():
+    '''
+    delete history
+    '''
+    models_selected = mc.ls(selection=True, type='transform')
+
+    if not models_selected:
+        print("Please, select the model")
+
     mc.delete(models_selected, ch=True)
 
 
-# check symmetry
-
 def check_symmetry():
+    '''
+    check symmetry
+    '''
     symmetry_script_path = os.path.join(
-        os.path.dirname(__file__), 'mel', 'symmetry.mel').replace('\\', '/')
+        os.path.dirname(__file__), 'mel', 'symmetry.mel')
+
+    symmetry_script_path = os.path.normpath(symmetry_script_path)
+    symmetry_script_path = symmetry_script_path.replace('\\', '\\\\')
 
     mel.eval(f'source "{symmetry_script_path}"')
 
 
-# delete shapeOrig and shapeDeformed
-
 def delete_intermediate_objects():
+    '''
+    delete shapeOrig and shapeDeformed
+    '''
+    models_selected = mc.ls(selection=True, type='transform')
 
-    #model_sel = mc.ls(sl=1, type='transform')
+    if not models_selected:
+        print("Please, select the model")
 
-    model_sel = models_selected
-
-    for model in model_sel:
+    for model in models_selected:
         # get all the transforms in hierarchy
-        model_children = mc.ls(model, mc.listRelatives(
+        transforms = mc.ls(model, mc.listRelatives(
             model, ad=1, type='transform'))
-        for model_child in model_children:
-            # get the shapes of child
-            model_child_shapes = mc.listRelatives(model_child, s=1)
+        for transform in transforms:
+            # get the shapes of transform
+            model_shapes = mc.listRelatives(transform, s=1)
             # do not delete if there is only one shape node
-            if len(model_child_shapes) > 1:
-                for model_child_shape in model_child_shapes:
+            if len(model_shapes) > 1:
+                for model_shape in model_shapes:
                     # if nothing is connected to the shape node, delete it
+                    if mc.getAttr(f"{model_shape}.intermediateObject"):
+                        mc.delete(model_shape)
 
-                    if mc.getAttr(f"{model_child_shape}.intermediateObject"):
-                        mc.delete(model_child_shape)
-
-    mc.select(cl=True)
-
-
-# delete the render and display layers
 
 def delete_display_and_render_layers():
-
+    '''
+    delete the render and display layers
+    '''
     display_layers = mc.ls(type='displayLayer')
     render_layers = mc.ls(type='renderLayer')
 
     for display_layer in display_layers:
-
         if len(display_layers) > 1 and display_layer != "defaultLayer":
-            mc.editDisplayLayerMembers(display_layer)
             mc.delete(display_layer)
 
     for render_layer in render_layers:
@@ -210,11 +249,10 @@ def delete_display_and_render_layers():
             mc.delete(render_layer)
 
 
-
-# delete unknown nodes
-
 def delete_unknown_nodes():
-
+    '''
+    delete unknown nodes
+    '''
     unknown_nodes = mc.ls(type = "unknown")
 
     for unknown_node in unknown_nodes:
@@ -223,16 +261,17 @@ def delete_unknown_nodes():
             mc.delete(unknown_node)
 
 
-# delete unused nodes in hypershade
-
 def delete_unused_nodes():
+    '''
+    delete unused nodes in hypershade
+    '''
     mel.eval("MLdeleteUnused")
 
 
-# assignment material
-
 def set_material(material_type, material_parms):
-
+    '''
+    assignment material (AnimColors)
+    '''
     faces = mc.ls(selection=True)
     shader = f"{material_type}_mat"
     sg = f"{material_type}_sg"
@@ -246,79 +285,16 @@ def set_material(material_type, material_parms):
     mc.sets(faces, e=True, forceElement=sg)
     
     for attr, value in material_parms.items():
+        # checking the type of the object
         if isinstance(value, list):
             mc.setAttr(f"{shader}.{attr}", *value, type="double3")
         else:
             mc.setAttr(f"{shader}.{attr}", value)
 
-'''
-def set_material(material_type, material_color):
-
-    faces = mc.ls(selection=True)
-    shader = f"{material_type}_mat"
-    sg = f"{material_type}_sg"
-    
-    if not mc.ls(sg): 
-    
-        shader = mc.shadingNode("blinn", asShader=True, name=shader )
-        sg = mc.sets(empty=True, renderable=True, noSurfaceShader=True,  name=sg)
-        mc.connectAttr( f"{shader}.outColor", f"{sg}.surfaceShader", f=True) 
-      
-    mc.sets(faces, e=True, forceElement=sg)
-    
-    mc.setAttr(f"{shader}.specularRollOff", 0.4)
-    mc.setAttr(f"{shader}.reflectivity", 0.3)
-    mc.setAttr(f"{shader}.eccentricity", 0.2)
-    
-    mc.setAttr(f"{shader}.color", material_color[0], material_color[1], material_color[2], type="double3")
-'''
-
-# set current units to cm
 
 def check_current_unit():
-
+    '''
+    set current units to cm
+    '''
     if mc.currentUnit(query=True, linear=True) != 'cm':
         mc.currentUnit(linear='cm')
-
-    model_selection()
-
-
-def query_inputs(height_field, *args):
-
-    global model_height_target
-    model_height_target = mc.floatField(height_field, q=True, v=1)
-
-
-def grid_for_input_height():
-    if mc.window('heightCheckDialog', ex=True):
-        mc.deleteUI('heightCheckDialog', window=True)
-
-    mc.window('heightCheckDialog', title='Height Check',
-              sizeable=False, resizeToFitChildren=True)
-
-    mc.rowColumnLayout(numberOfColumns=2, columnWidth=[
-                       (1, 150), (2, 100), (3, 75)])
-
-    height_label = mc.text(label='Height:', align='left')
-    height_field = mc.floatField(value=175.0)
-
-    mc.button(label='Apply', command=partial(query_inputs, height_field))
-
-    mc.button(label='Cancel',
-              command='mc.deleteUI("heightCheckDialog", window=True)')
-
-    mc.showWindow()
-
-
-def model_selection():
-
-    global models_selected
-    models_selected = mc.ls(selection=True, type='transform')
-
-    if not models_selected:
-        print("Please, select the model")
-    # else:
-        # grid_for_input_height()
-
-
-# check_current_unit()

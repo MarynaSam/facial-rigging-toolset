@@ -9,9 +9,13 @@ Add "python" directory to PYTHONPATH environment variable.
 ```python
 import facial_rig_toolset.model_check as mcheck
 
-# get model selection and store it in a global variable
-mcheck.model_selection()
-
 mcheck.auto_uvs()
+
+```
+```python
+from facial_rig_toolset import head_cut
+
+# select the head faces you want to cut
+head_cut.head_cut()
 
 ```
