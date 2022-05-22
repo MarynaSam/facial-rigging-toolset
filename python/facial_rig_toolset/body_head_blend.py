@@ -11,7 +11,7 @@ BLEND_SHAPE_HEAD_AND_BODY_NAME = "head_body_blendShape"
 
 
 
-def object_exists(object_name):
+def _object_exists(object_name):
     '''
         check if the object with a specific name exists
     '''
@@ -22,7 +22,7 @@ def object_exists(object_name):
     return True
 
 
-def connect_the_head_and_the_body(body_joints, head_joints):
+def _connect_the_head_and_the_body(body_joints, head_joints):
     '''
         connect shared body joints to the head joints (parent and scale constraint)
         create blend shape between the head and body
@@ -38,23 +38,23 @@ def connect_the_head_and_the_body(body_joints, head_joints):
     mc.hide(HEAD_GEOMETRY)
     
 
-def transfer_weights_from_body_to_head():
+def _transfer_weights_from_body_to_head():
     '''
         copy body skin weights to the shared part of the head skin cluster 
     ''' 
 
-    if not object_exists(SKIN_CLUSTER_BODY):
+    if not _object_exists(SKIN_CLUSTER_BODY):
         return 
 
     mc.copySkinWeights(ss=SKIN_CLUSTER_BODY, ds=SKIN_CLUSTER_HEAD, noMirror=True, ia="label")
     
       
-def bind_skin_cluster_to_head_geometry(selected_head_joints_and_geo):
+def _bind_skin_cluster_to_head_geometry(selected_head_joints_and_geo):
     '''
         create skin cluster head_skinCluster
         head_geo will be bound to the selected joints
     '''
-    if not object_exists(HEAD_GEOMETRY):
+    if not _object_exists(HEAD_GEOMETRY):
         return
     
     #adding head_geo to selection
@@ -102,8 +102,8 @@ def body_head_blend():
         the cut head should be named as 'head_geo'
 
     '''
-    #if not object_exists(SKIN_CLUSTER_BODY) or not object_exists(BODY_GEOMETRY) or not object_exists(HEAD_GEOMETRY):
-        #return
+    if not _object_exists(SKIN_CLUSTER_BODY) or not _object_exists(BODY_GEOMETRY) or not _object_exists(HEAD_GEOMETRY):
+        return
 
     selected_joints = mc.ls(selection=True)
 
@@ -120,9 +120,9 @@ def body_head_blend():
     
     head_joints_selected = mc.ls(selection=True)
     
-    bind_skin_cluster_to_head_geometry(head_joints_selected)
-    transfer_weights_from_body_to_head()   
-    connect_the_head_and_the_body(body_joints, head_joints)
+    _bind_skin_cluster_to_head_geometry(head_joints_selected)
+    _transfer_weights_from_body_to_head()   
+    _connect_the_head_and_the_body(body_joints, head_joints)
 
 
 
