@@ -39,7 +39,7 @@ def name_and_parent_groups(list_of_names, grp_to_parent):
         mc.parent(list_of_names[index], grp_to_parent)    
 
 
-def file_structure():
+def build_structure():
     
     mc.group(em=True, name=MAIN_GROUP)
     
