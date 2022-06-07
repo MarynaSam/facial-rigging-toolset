@@ -86,6 +86,20 @@ def build():
         )            
         return
 
+    if mc.objExists(JAW_MAIN_GROUP):
+        button = mc.confirmDialog(
+            title="The Jaw Rig Already Exists",
+            message="The Jaw Rig already exists in the scene. Are you sure you want to re-create it?",
+            button=["Yes", "No"],
+            defaultButton="No",
+            cancelButton="No",
+            dismissString="No"
+        )
+        if button == "No":
+            return
+
+        mc.delete(JAW_MAIN_GROUP)
+
     # create main control and sdk group above it
     _create_control(JAW_CONTROL_GROUP, JAW_CONTROL, 14)
     
@@ -104,7 +118,7 @@ def build():
     constraints = _constraint_base_joints()
     _set_attrs_to_jaw_control(constraints)
 
-    parent_jaw_to_motion_group()
+    _parent_jaw_to_motion_group()
 
 
 def set_jaw_ranges():
@@ -159,7 +173,7 @@ def set_jaw_ranges():
     _set_closed_jaw_movement()
 
 
-def parent_jaw_to_motion_group():
+def _parent_jaw_to_motion_group():
     motion_group = structure.FACE_GROUP[1]
 
     if mc.objExists(motion_group):

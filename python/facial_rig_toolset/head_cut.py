@@ -16,7 +16,7 @@ BODY_GEOMETRY = "body_geo"
 
 
 
-def clean_up():
+def _clean_up():
     
     model_check.delete_history()
     model_check.freeze_tranfsorm()
@@ -59,7 +59,7 @@ def head_cut():
     new_body = mc.polyUnite(head_name_dupl, BODY_GEOMETRY, name=BODY_GEOMETRY)
     mc.polyMergeVertex(d=0.00005)
     
-    clean_up()
+    _clean_up()
 
     mc.delete(head_name_dupl)
     
@@ -70,4 +70,4 @@ def head_cut():
 
     pm.parent(HEAD_GEOMETRY, world=True)
     
-    clean_up()
+    _clean_up()

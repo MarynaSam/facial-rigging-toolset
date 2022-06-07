@@ -2,6 +2,8 @@ import os
 from functools import partial
 import pprint
 
+from maya import OpenMaya as om
+
 from maya import mel
 import maya.cmds as mc
 
@@ -111,6 +113,10 @@ def zero_out_pivots():
 
     models_selected = mc.ls(selection=True, type='transform')
 
+    if not models_selected:
+        om.MGlobal.displayError("Please select the model(s)")
+        return
+
     mc.xform(models_selected, piv=(0, 0, 0), ws=True)
 
 
@@ -127,7 +133,8 @@ def fix_character_scale_and_zero_out_pivots(model_height_target=175):
     models_selected = mc.ls(selection=True, type='transform')
 
     if not models_selected:
-        print("Please, select the model")
+        om.MGlobal.displayError("Please select the model(s)")
+        return
 
     bbox = mc.exactWorldBoundingBox(models_selected)
 
@@ -151,7 +158,8 @@ def auto_uvs():
     models_selected = mc.ls(selection=True, type='transform')
 
     if not models_selected:
-        print("Please, select the model")
+        om.MGlobal.displayError("Please select the model")
+        return
 
     for model in models_selected:
         mc.polyAutoProjection(f"{model}.f[*]")
@@ -164,21 +172,23 @@ def soften_edges():
     models_selected = mc.ls(selection=True, type='transform')
 
     if not models_selected:
-        print("Please, select the model")
+        om.MGlobal.displayError("Please select the model")
+        return
 
     for model in models_selected:
         mc.polySoftEdge(model, angle=180)
 
 
 
-def freeze_tranfsorm():
+def freeze_transform():
     '''
     freeze transformation
     '''
     models_selected = mc.ls(selection=True, type='transform')
 
     if not models_selected:
-        print("Please, select the model")
+        om.MGlobal.displayError("Please select the model")
+        return
 
     for model in models_selected:
         mc.makeIdentity(model, apply=True, t=1, r=1, s=1, n=0, pn=1)
@@ -191,7 +201,8 @@ def delete_history():
     models_selected = mc.ls(selection=True, type='transform')
 
     if not models_selected:
-        print("Please, select the model")
+        om.MGlobal.displayError("Please select the model")
+        return
 
     mc.delete(models_selected, ch=True)
 
@@ -216,7 +227,8 @@ def delete_intermediate_objects():
     models_selected = mc.ls(selection=True, type='transform')
 
     if not models_selected:
-        print("Please, select the model")
+        om.MGlobal.displayError("Please select the model")
+        return
 
     for model in models_selected:
         # get all the transforms in hierarchy
@@ -272,10 +284,16 @@ def set_material(material_type, material_parms):
     '''
     assignment material (AnimColors)
     '''
-    faces = mc.ls(selection=True)
+    faces = mc.filterExpand(sm=34)
     shader = f"{material_type}_mat"
     sg = f"{material_type}_sg"
-    
+
+
+    if not faces:
+        om.MGlobal.displayError("Please select the faces")
+        return
+
+
     if not mc.ls(sg): 
     
         shader = mc.shadingNode("blinn", asShader=True, name=shader )
