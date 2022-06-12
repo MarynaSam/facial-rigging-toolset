@@ -8,7 +8,16 @@ HEAD_GEOMETRY = "head_geo"
 SKIN_CLUSTER_BODY = "body_skinCluster"
 SKIN_CLUSTER_HEAD = "head_skinCluster"
 BLEND_SHAPE_HEAD_AND_BODY_NAME = "head_body_blendShape"
+JOINT = "_jnt"
+LEFT_SIDE = "_lf"
+RIGHT_SIDE = "_rt"
 
+LABEL_SIDE_DICT = {  
+       'Center':0,   
+       'Left':1,   
+       'Right':2,  
+       'None':3  
+       }
 
 
 def _object_exists(object_name):
@@ -22,13 +31,22 @@ def _object_exists(object_name):
     return True
 
 
-def _connect_the_head_and_the_body(body_joints, head_joints):
+def connect_the_head_and_the_body():
     '''
         connect shared body joints to the head joints (parent and scale constraint)
         create blend shape between the head and body
         set the blen shape to 1
         hide the head_geo 
     '''
+    selected_joints = mc.ls(selection=True)
+
+    if not selected_joints:
+        om.MGlobal.displayError("Please select the joints you'd like to connect, first the body joints then the head joints.")
+        return
+
+    body_joints = selected_joints[:int(len(selected_joints)/2)]
+    head_joints = selected_joints[int(len(selected_joints)/2):]
+
     for index in range(len(body_joints)):
         mc.parentConstraint(body_joints[index], head_joints[index], maintainOffset=True, weight=1)
         mc.scaleConstraint(body_joints[index], head_joints[index], offset=[1,1,1], weight=1)
@@ -61,10 +79,42 @@ def _bind_skin_cluster_to_head_geometry(selected_head_joints_and_geo):
     mc.select(HEAD_GEOMETRY, add=True)
     selected_head_joints_and_geo = mc.ls(selection=True)
     
-    print(selected_head_joints_and_geo)
-    
     #create and mane the skin cluster
     mc.skinCluster(selected_head_joints_and_geo, tsb=True, name=SKIN_CLUSTER_HEAD)
+
+
+def label_joints():
+    '''
+    lable joints
+    name convention is as follows for center joints: 'name_00_jnt'
+    name convention is as follows for the sides: 'name_00_lf_jnt', 'name_00_rt_jnt'
+    '''
+
+    joints_to_label_selected = mc.ls(selection=True)
+
+    if not joints_to_label_selected:
+        om.MGlobal.displayError("Please select the joints to label them.")
+        return 
+   
+    for joint_to_label in joints_to_label_selected:
+
+        label_name = joint_to_label
+        if LEFT_SIDE in joint_to_label:
+            mc.setAttr(f"{joint_to_label}.side", LABEL_SIDE_DICT['Left'])
+            label_name = label_name.replace(f"{LEFT_SIDE}{JOINT}", "")
+        elif RIGHT_SIDE in joint_to_label:
+            mc.setAttr(f"{joint_to_label}.side", LABEL_SIDE_DICT['Right'])
+            label_name = label_name.replace(f"{RIGHT_SIDE}{JOINT}", "")
+        else:
+            mc.setAttr(f"{joint_to_label}.side", LABEL_SIDE_DICT['Center'])
+            label_name = label_name.replace(f"{JOINT}", "")   
+
+        #type 18 goes for Other in 'jointName.type'
+        mc.setAttr(f"{joint_to_label}.type", 18)
+        #name the label
+        mc.setAttr (f"{joint_to_label}.otherType", label_name, type ='string')
+        #draw thw label
+        mc.setAttr (f"{joint_to_label}.drawLabel", 1)
 
 
 def duplicate_joints():
@@ -82,7 +132,10 @@ def duplicate_joints():
 
     head_shared_joints = mc.duplicate(joints_to_duplicate, rc=True)
     
-    mc.parent(head_shared_joints[0], w=True)
+    root_parent = mc.listRelatives(joints_to_duplicate, parent=True)
+
+    if root_parent:
+        mc.parent(head_shared_joints[0], w=True)
     
     for joint_index, head_shared_joint in enumerate(head_shared_joints):
         
@@ -95,7 +148,7 @@ def duplicate_joints():
         mc.rename(head_shared_joint, joint_new_name)
     
 
-def body_head_blend():
+def transfer_body_skinweight_to_head():
     ''' 
         body skin cluster should be named as 'body_skinCluster'
         mesh where there is head should be named as 'body_geo'
@@ -105,24 +158,15 @@ def body_head_blend():
     if not _object_exists(SKIN_CLUSTER_BODY) or not _object_exists(BODY_GEOMETRY) or not _object_exists(HEAD_GEOMETRY):
         return
 
-    selected_joints = mc.ls(selection=True)
-
-    if not selected_joints:
-        om.MGlobal.displayError("Please select the joints you'd like to connect, first the body joints then the head joints.")
-        return
-
-    body_joints = selected_joints[:int(len(selected_joints)/2)]
-    head_joints = selected_joints[int(len(selected_joints)/2):]
-
-
-    for index in range(len(head_joints)):
-        mc.select(head_joints[index], add=True)
-    
     head_joints_selected = mc.ls(selection=True)
-    
+
+    if not head_joints_selected:
+        om.MGlobal.displayError("Please select the head joints.")
+        return
+  
     _bind_skin_cluster_to_head_geometry(head_joints_selected)
     _transfer_weights_from_body_to_head()   
-    _connect_the_head_and_the_body(body_joints, head_joints)
+
 
 
 

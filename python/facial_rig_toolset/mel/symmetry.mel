@@ -82,7 +82,7 @@ global proc string[] abCheckSym(string $obj, int $axis, float $tol, int $bTable,
 	float $test1;
 	float $test2;
 	
-	float $midOffsetTol = -.0000001;
+	float $midOffsetTol = -.00001;
 	
 	if ($usePiv){
 		$aVtxTrans = `xform -q -ws -t $obj`;

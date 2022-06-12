@@ -7,6 +7,9 @@ from maya import OpenMaya as om
 from facial_rig_toolset import structure
 reload(structure)
 
+from facial_rig_toolset import model_check
+reload(model_check)
+
 
 ROOT_GUIDE = "Jaw_guide"
 GUIDES = [ROOT_GUIDE, "Jaw_Bt_guide", "Jaw_Tp_guide", "Jaw_Lf_guide", "Jaw_Rt_guide"]
@@ -99,6 +102,8 @@ def build():
             return
 
         mc.delete(JAW_MAIN_GROUP)
+        model_check.delete_unused_nodes()
+
 
     # create main control and sdk group above it
     _create_control(JAW_CONTROL_GROUP, JAW_CONTROL, 14)
@@ -164,13 +169,15 @@ def set_jaw_ranges():
 
     mc.setAttr(f"{driver}.jawOpen", 0)
     
-    mc.select(driver)
+    mc.select(driven)
 
     # for this command to work on all the attributes
     # we've just pre-selected the object itself
     mc.setInfinity(pri="linear", poi="linear")
 
     _set_closed_jaw_movement()
+
+    mc.select(driver)
 
 
 def _parent_jaw_to_motion_group():
@@ -363,6 +370,12 @@ def _set_closed_jaw_movement():
     node_type = "condition"
     node_name_suffix = "_COND"
     node_name = f"{name}{node_name_suffix}"
+    node_existing_flag = False
+
+    if mc.objExists(node_name):
+        model_check.delete_unused_nodes()
+        mc.delete(node_name)
+        node_existing_flag = True 
 
     mc.createNode(node_type, n=node_name)
     mc.setAttr(f"{node_name}.operation", 3)
@@ -371,5 +384,7 @@ def _set_closed_jaw_movement():
     mc.connectAttr(f"{JAW_CONTROL}.{ATTR_NAMES[1]}", f"{node_name}.colorIfTrue.colorIfTrueR")
 
     for blend_colors_node in BLEND_COLORS_NODES:
-        mc.disconnectAttr(f"{JAW_CONTROL}.{ATTR_NAMES[1]}", f"{blend_colors_node}.blender")
+        if not node_existing_flag:
+            mc.disconnectAttr(f"{JAW_CONTROL}.{ATTR_NAMES[1]}", f"{blend_colors_node}.blender")
+
         mc.connectAttr(f"{node_name}.outColor.outColorR", f"{blend_colors_node}.blender")

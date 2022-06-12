@@ -1,0 +1,171 @@
+{
+
+global vector $curvePoints[];
+global string $cv = "";
+
+//
+// Curve Evaluation Procs
+//
+
+global proc SSB.readInputPoints(){
+    //Reads points from curve widget and puts them into $curvePoints
+
+    string $pointString = `falloffCurve -q -as $cv`;
+    string $tkn[];
+    tokenize ($pointString,",",$tkn);
+    clear($curvePoints);
+    for ($i=0; $i<size($tkn)/2; $i++) {
+        $curvePoints[$i] = <<(float)$tkn[$i*2], (float)$tkn[$i*2+1], 0.0>>;
+    }
+
+};
+
+global proc vector SSB.deBoor(float $x, float $t[], vector $c[]){
+    //Evaluates DeBoor's algorithm for B-spline curves
+
+    $p = 3; //Degree
+    $k = 0; //Knot span
+
+    //Find knot span
+    for($i = 0; $i < size($t)-1; $i++){
+        if($t[$i]!=$t[$i+1] && $t[$i] <= $x && $t[$i+1] >= $x){
+            $k = $i;
+        }
+    }
+
+    vector $d[];
+    for ($j=0; $j<$p+1; $j++) {
+        $d[$j] = $c[$j+$k-$p];
+    }
+    for ($r = 1; $r < $p+1; $r++) {
+        for($j = $p; $j>$r-1; $j--){
+            $alpha = ($x - $t[$j+$k-$p]) / ($t[$j+1+$k-$r] - $t[$j+$k-$p]);
+            $d[$j] = (1.0 - $alpha) * $d[$j-1] + $alpha * $d[$j];
+        }
+    }
+    return $d[$p];
+
+};
+
+global proc SSB.evalNurbs(){
+    SSB.readInputPoints();
+    vector $inputPoints[] = $curvePoints;
+    float $knots[];
+    clear($knots);
+
+    //Knots
+    $knots[0] = 0;
+    $knots[1] = 0;
+    $knots[2] = 0;
+    for($i = 0; $i < size($inputPoints)-2;$i++){
+        $knots[$i+3] = $i;
+    }
+    $knots[size($knots)] = $i-1;
+    $knots[size($knots)] = $i-1;
+    $knots[size($knots)] = $i-1;
+
+
+    $sscString = "softSelect -ssc \"";
+    float $x;
+    float $lastX = -1.0;
+    $maxval = $knots[size($knots)-1];
+    for ($i = 0; $i <= 20; $i++) {
+        $x = ($maxval/20.0)*$i;
+
+        vector $fp = SSB.deBoor($x, $knots, $inputPoints);
+
+        //Handle non-X monotone curves
+        if($fp.x > $lastX){
+            $lastX = $fp.x;
+            $sscString+=$fp.y;
+            $sscString+=",";
+            $sscString+=$fp.x;
+            $sscString+=",1,";
+        }
+    }
+
+    $sscString = substring($sscString,1,size($sscString)-1); //Trim trailing comma
+    $sscString += "\"";
+    eval($sscString);
+};
+
+//
+// UI Procedures
+//
+
+global proc SSB.buildWindow(){
+    rowColumnLayout -numberOfColumns 2 
+                    -columnSpacing 2 5
+                    -rowSpacing 1 1
+                    -columnAttach 1 "right" 0
+                    -columnWidth 1 125
+                    -columnAttach 2 "left" 0
+                    -adjustableColumn 2;
+            text -label "Soft Select:" -al "right";
+            rowLayout -numberOfColumns 2 
+                      -columnAlign 1 "left" 
+                      -columnAlign 2 "center" 
+                      -adjustableColumn 1;
+                checkBox -label ""
+                         -onCommand "softSelect -sse 1"
+                         -offCommand "softSelect -sse 0";
+                button -label "Reset"
+                       -command "softSelect -ssr";
+            setParent ..;
+
+            text -label "Falloff mode:" -al "right";
+            rowLayout;
+                optionMenu -changeCommand "SSB.changeFalloffMode(\"#1\")";
+                    menuItem -label "Volume" -data 0;
+                    menuItem -label "Surface" -data 1;
+                    menuItem -label "Global" -data 2;
+                    menuItem -label "Object" -data 3;
+            setParent ..;
+            text -label "Falloff radius:" -al "right";
+            floatSliderGrp -field true 
+                           -minValue 0.0 
+                           -maxValue 100.0
+                           -changeCommand "SSB.changeFalloffRadius(\"#1\")";
+            text -label "Falloff Curve:" -al "right";
+            $cv = `falloffCurve -h 200 -cc "SSB.evalNurbs()"`;
+};
+
+global proc SSB.changeFalloffMode(string $m){
+    int $mode = -1;
+    switch($m){
+        case "Volume":
+            $mode = 0;
+            break;
+        case "Surface":
+            $mode = 1;
+            break;
+        case "Global":
+            $mode = 2;
+            break;
+        case "Object":
+            $mode = 3;
+            break;
+    }
+    
+    softSelect -ssf $mode;
+};
+
+global proc SSB.changeFalloffRadius(int $r){
+    softSelect -ssd $r;
+}
+
+global proc SSB.testTiming(){
+    timer -s;
+    for ($i = 0; $i < 100; $i++) {
+        evalNurbs();
+    }
+    print(`timer -e`);
+};
+
+if(`workspaceControl -exists "SSB"`){
+    deleteUI "SSB";
+};
+
+workspaceControl -ui "SSB.buildWindow()" -li true "SSB";
+
+}
