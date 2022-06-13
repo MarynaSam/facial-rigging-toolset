@@ -1113,6 +1113,19 @@ global proc abSymCtl(string $action){
 }
 
 
+global proc abSymCtlWrapper(string $action){
+	string $sel[] = `ls -sl -fl`;
+	string $selectedPolyObjs[] = `filterExpand -sm 12 $sel`;
+
+	for ($i=0; $i < size($selectedPolyObjs); $i++){
+		select $selectedPolyObjs[$i];
+		abSymCtl($action);
+	}
+
+	select -cl;
+}
+
+
 global proc abSymMesh(){
 	
 	global int $abSymTable[];
@@ -1180,8 +1193,8 @@ global proc abSymMesh(){
 	button -l "Selection Mirror" -enable $sbgBnsEn -command "abSymCtl(\"smBn\")" smBn;
 	button -l "Select Moved Verts" -enable $sbgBnsEn -command "abSymCtl(\"smvBn\")" smvBn;
 	separator sep4;
-	button -l "Mirror Selected" -enable $sbgBnsEn -command "abSymCtl(\"msBn\")" msBn;
-	button -l "Flip Selected" -enable $sbgBnsEn -command "abSymCtl(\"fsBn\")" fsBn;
+	button -l "Mirror Selected" -enable $sbgBnsEn -command "abSymCtlWrapper(\"msBn\")" msBn;
+	button -l "Flip Selected" -enable $sbgBnsEn -command "abSymCtlWrapper(\"fsBn\")" fsBn;
 	button -l "Revert Selected to Base" -enable $sbgBnsEn  -command "abSymCtl(\"rsBn\")" rsBn;
 	
 	string $tCmdStr = "floatField -e -value ((`floatField -q -v rvrtFltValFltFld`)/100.0) rsPrFltFld;abSymCtl(\"rsPrBn\");";

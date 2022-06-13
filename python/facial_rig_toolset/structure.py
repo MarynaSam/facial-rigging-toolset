@@ -58,7 +58,7 @@ def _build_fascia_layers(list_of_names, grp_to_parent):
     shape_orig = f"{MODEL_NAME}ShapeOrig"
     if mc.objExists(shape_orig):
         mc.delete(shape_orig)
-'''
+    '''
     for fascia_layer_name in list_of_names:
         mc.duplicate(MODEL_NAME, n=fascia_layer_name)
         mc.parent(fascia_layer_name, grp_to_parent)
@@ -74,7 +74,7 @@ def _build_fascia_layers(list_of_names, grp_to_parent):
             fascia_top_layer = [fascia_other_layers[i]]
             fascia_lower_layer = fascia_other_layers[i+1]
             _connecting_fascia_layers(fascia_top_layer, fascia_lower_layer)
-'''
+    '''
     blendshape_weights = []
     for i, _ in enumerate(fascia_first_layer):
         fire_blendshape_tuple = (i,1)
@@ -82,7 +82,7 @@ def _build_fascia_layers(list_of_names, grp_to_parent):
 
     blend_shape_name = f"{list_of_names[4]}{BLEND_SHAPE}"
     mc.blendShape(fascia_first_layer, list_of_names[4], topologyCheck=True, w=blendshape_weights, n=blend_shape_name)
-'''
+    '''
 
 def _connecting_fascia_layers(fascia_top_layer, fascia_lower_layer):
 

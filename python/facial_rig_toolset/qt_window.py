@@ -95,6 +95,7 @@ class SubWindow(QWidget):
         self.checkbox_set_current_units_to_cm = QCheckBox("Set Units To Cm")
         self.checkbox_pivots_zero_out = QCheckBox("Zero Out Pivots")
         self.checkbox_fix_character_scale = QCheckBox("Fix Character Height")
+        self.checkbox_freeze_transform = QCheckBox("Freeze Transform")
 
         self.input_height = QDoubleSpinBox()
         self.input_height.setRange(0, 400)
@@ -102,7 +103,7 @@ class SubWindow(QWidget):
 
         self.checkbox_auto_uvs = QCheckBox("Auto UVs")
         self.checkbox_soften_edges = QCheckBox("Soften Edges")
-        self.checkbox_freeze_transform = QCheckBox("Freeze Transform")
+
         self.checkbox_delete_history = QCheckBox("Delete History")
         self.checkbox_delete_intermediate_objects = QCheckBox("Delete Intermediate Objects")
         self.checkbox_delete_layers = QCheckBox("Delete Display And Render Layers")
@@ -199,7 +200,10 @@ class SubWindow(QWidget):
         self.button_update_jaw_range.setStyleSheet('QToolTip { min-width: 300px; }')
 
         self.button_clean_model = QPushButton("Clean Model")
-        self.button_clean_model.setToolTip("Create a clean model and position it above the head")
+        self.button_clean_model.setToolTip("Create a clean model and position it to the side of the head")
+
+        self.button_cluster_model = QPushButton("Cluster Model")
+        self.button_cluster_model.setToolTip("Create a cluster model and position it above the head")
 
         self.button_ss_buddy = QPushButton("SS Buddy")
         self.button_ss_buddy.setToolTip(
@@ -231,8 +235,23 @@ class SubWindow(QWidget):
         self.button_shapes_for_mouth.setToolTip(
             "<div>1) Select the final mask model</div>"
             "<div>2) Makes 8 mouth models and rename them</div>")
+        self.button_shapes_for_cluster.setStyleSheet('QToolTip { min-width: 300px; }')
 
-        self.button_mirror_shapes = QPushButton("Mirror Shapes")
+        self.button_combo_shapes = QPushButton("Combo Shapes")
+        self.button_combo_shapes.setToolTip(
+            "<div>Make Combo Shapes for the mouth shapes on the left side</div>")
+        self.button_combo_shapes.setStyleSheet('QToolTip { min-width: 300px; }')
+
+        self.button_right_side_shapes = QPushButton("Right Side Shapes")
+        self.button_right_side_shapes.setToolTip(
+            "<div>Make Combo Shapes for the mouth shapes on the left side</div>")
+        self.button_right_side_shapes.setStyleSheet('QToolTip { min-width: 300px; }')
+
+        self.button_flip_shapes = QPushButton("Flip Selected Shapes")
+        self.button_flip_shapes.setToolTip(
+            "<div>Flip selected mouth shapes on the left side</div>"
+            "<div><b>!IMPORTANT!</b> Don't select <b>combo</b> shapes</div>")
+        self.button_flip_shapes.setStyleSheet('QToolTip { min-width: 300px; }')
 
         self.button_create_mouth_corner_control = QPushButton("Create Mouth Corner Control")
         self.button_connect_control_to_face = QPushButton("Connect Control To Face")
@@ -250,9 +269,9 @@ class SubWindow(QWidget):
         layout.addWidget(self.group_box_structure)
         layout.addWidget(self.group_box_jaw_rig)
         layout.addWidget(self.group_box_mouth)
-        '''
+        
         layout.addWidget(self.group_box_lips)
-        '''
+        
         
         self.setLayout(layout)
 
@@ -266,10 +285,10 @@ class SubWindow(QWidget):
         layout.addLayout(sublayout)
 
         layout.addWidget(self.checkbox_pivots_zero_out)
-        layout.addWidget(self.checkbox_auto_uvs)
-        layout.addWidget(self.checkbox_soften_edges)
         layout.addWidget(self.checkbox_freeze_transform)
         layout.addWidget(self.checkbox_delete_history)
+        layout.addWidget(self.checkbox_auto_uvs)
+        layout.addWidget(self.checkbox_soften_edges)
         layout.addWidget(self.checkbox_delete_intermediate_objects)
         layout.addWidget(self.checkbox_delete_layers)
         layout.addWidget(self.checkbox_delete_unknow_nodes)
@@ -304,52 +323,71 @@ class SubWindow(QWidget):
         
         layout = QVBoxLayout(self.group_box_mouth)
         layout.addWidget(self.button_clean_model)
+        layout.addWidget(self.button_cluster_model)
         layout.addWidget(self.button_ss_buddy)
         layout.addWidget(self.button_soft_cluster)
         layout.addWidget(self.button_shapes_for_cluster)
         layout.addWidget(self.button_cluster_mask_shapes)
         layout.addWidget(self.button_shapes_for_mouth)
-        '''
-        layout.addWidget(self.button_mirror_shapes)
+        layout.addWidget(self.button_combo_shapes)
+        layout.addWidget(self.button_right_side_shapes)
+        layout.addWidget(self.button_flip_shapes)
         layout.addWidget(self.button_create_mouth_corner_control)
         layout.addWidget(self.button_connect_control_to_face)
         layout.addWidget(self.button_wip_group_mouth_corner)
         layout.addWidget(self.button_clean_unused_shapes)
 
         layout = QVBoxLayout(self.group_box_lips)
-        '''
+
 
     def _init_signals(self):
         self.button_model_check.clicked.connect(self._on_button_model_check_clicked)
         self.button_check_symmetry.clicked.connect(self._on_button_check_symmetry_clicked)
+
         self.button_assign_material.clicked.connect(self._on_button_assign_material_clicked)
+
         self.button_head_cut.clicked.connect(self._on_button_head_cut_clicked)
+
         self.button_joint_label.clicked.connect(self._on_button_joint_label_clicked)
         self.button_duplicate_joints.clicked.connect(self._on_button_duplicate_joints_clicked)
         self.button_body_head_transfer_skinweight.clicked.connect(self._on_button_body_head_transfer_skinweight_clicked)
         self.button_body_head_blend.clicked.connect(self._on_button_body_head_blend_clicked)
+
         self.button_build_structure.clicked.connect(self._on_button_build_structure_clicked)
         self.button_parent_mesh.clicked.connect(self._on_button_parent_mesh_clicked)
         self.button_parent_joints.clicked.connect(self._on_button_parent_joints_clicked)
+
         self.button_build_guides.clicked.connect(self._on_button_build_guide_clicked)
         self.button_build_jaw_rig.clicked.connect(self._on_button_build_jaw_rig_clicked)
         self.button_update_jaw_range.clicked.connect(self._on_button_update_jaw_range_clicked)
+
         self.button_clean_model.clicked.connect(self._on_button_clean_model_clicked)
+        self.button_cluster_model.clicked.connect(self._on_button_cluster_model_clicked)
         self.button_ss_buddy.clicked.connect(self._on_button_ss_buddy_clicked)
         self.button_soft_cluster.clicked.connect(self._on_button_soft_cluster_clicked)
         self.button_shapes_for_cluster.clicked.connect(self._on_button_shapes_for_cluster_clicked)
         self.button_cluster_mask_shapes.clicked.connect(self._on_button_cluster_mask_shapes_clicked)
         self.button_shapes_for_mouth.clicked.connect(self._on_button_shapes_for_mouth_clicked)
-        self.button_mirror_shapes.clicked.connect(self._on_button_mirror_shapes_clicked)
+        self.button_combo_shapes.clicked.connect(self._on_button_combo_shapes_clicked)
+        self.button_right_side_shapes.clicked.connect(self._on_button_right_side_shapes_clicked)
+        self.button_flip_shapes.clicked.connect(self._on_button_flip_shapes_clicked)
         self.button_clean_unused_shapes.clicked.connect(self._on_button_clean_unused_shapes_clicked)
         self.button_create_mouth_corner_control.clicked.connect(self._on_button_create_mouth_corner_control_clicked)
         self.button_connect_control_to_face.clicked.connect(self._on_button_connect_control_to_face_clicked)
         self.button_wip_group_mouth_corner.clicked.connect(self._on_button_wip_group_mouth_corner_clicked)
 
-        
+
     def _on_button_clean_model_clicked(self):
         try:
             mouth_corners.get_clean_model()
+
+        except RuntimeError as e:
+           om.MGlobal.displayError(str(e)) 
+
+        
+    def _on_button_cluster_model_clicked(self):
+        try:
+            mouth_corners.get_cluster_model()
 
         except RuntimeError as e:
            om.MGlobal.displayError(str(e)) 
@@ -395,8 +433,28 @@ class SubWindow(QWidget):
             om.MGlobal.displayError(str(e))
 
 
-    def _on_button_mirror_shapes_clicked(self):
-        pass
+    def _on_button_combo_shapes_clicked(self):
+        try:
+            mouth_corners.make_combo_shapes()
+
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
+
+
+    def _on_button_right_side_shapes_clicked(self):
+        try:
+            mouth_corners.mirror_mouth_corner_shapes()
+
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
+
+
+    def _on_button_flip_shapes_clicked(self):
+        try:
+            mouth_corners.flip_shapes()
+
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
 
 
     def _on_button_clean_unused_shapes_clicked(self):
