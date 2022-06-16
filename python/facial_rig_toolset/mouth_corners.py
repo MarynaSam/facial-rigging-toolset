@@ -10,27 +10,71 @@ from maya import mel
 
 from facial_rig_toolset import model_check
 from facial_rig_toolset import head_cut
+from facial_rig_toolset import structure
 reload(model_check)
 reload(head_cut)
+reload(structure)
 
 
-CLEAN_MODEL_MOUTH_CORNER = "mouth_cluster_geo"
+MOUTH_CORNER = "mouth_corner"
+CLEAN_MODEL_MOUTH_CORNER = f"{MOUTH_CORNER}_cluster_geo"
 CLEAN_MODEL = "clean_head_geo"
-MOUTH_CLUSTER_GROUP = "WIP_mouth_corner_grp"
-MOUTH_CORNER_CLUSTER_NAME = "mouth_cluster_geo_clsHandle"
-MOUTH_MASK_NAMES = ["mouth_corner_eye_mask", "mouth_corner_nose_mask", "mouth_corner_chin_mask", "mouth_corner_half_face_mask"]
+MOUTH_CLUSTER_GROUP = f"WIP_{MOUTH_CORNER}_grp"
+MOUTH_CORNER_CLUSTER_NAME = f"{MOUTH_CORNER}_cluster_geo_clsHandle"
+MOUTH_MASK_NAMES = [f"{MOUTH_CORNER}_eye_mask_geo", f"{MOUTH_CORNER}_nose_mask_geo", f"{MOUTH_CORNER}_chin_mask_geo", f"{MOUTH_CORNER}_half_face_mask_geo"]
 MOUTH_CORNER_LF_NAMES = ["smileLf", "smileWideLf", "wideLf", "frownWideLf", "frownLf", "frownNarrowLf", "narrowLf", "smileNarrowLf"]
 MOUTH_CORNER_RT_NAMES = ["smileRt", "smileWideRt", "wideRt", "frownWideRt", "frownRt", "frownNarrowRt", "narrowRt", "smileNarrowRt"]
 CORNER_SHAPE_LOCATION = [1, 3, 5, 7]
 MOUTH_CORNER_LF_COMBO_NAMES = ["smileWideLf_combo", "frownWideLf_combo", "frownNarrowLf_combo", "smileNarrowLf_combo"]
 MOUTH_CORNER_RT_COMBO_NAMES = ["smileWideRt_combo", "frownWideRt_combo", "frownNarrowRt_combo", "smileNarrowRt_combo"]
 MOUTH_CORNER_CONTROL_NAMES = ["MouthLf_Corner_ctl", "MouthRt_Corner_ctl"]
+MOUTH_CONTROL_GROUPS = ["_neg", "_sdk", "_grp"]
+
 BLEND_SHAPE = "_blendShape"
+CTL = "_ctl"
 
 HEIGHT_MULTIPLIER = 1
 WIDTH_MULTIPLIER = 2
+ANNOTATION_HEIGHT_MULTIPLIER = 2
 KEYFRAME_COUNT = 9
 MIRROR_SIZE_BBOX_MULTIPLIER = 45
+
+
+def _annotate_model(model_name, model_position):
+    '''
+    annotate the model 
+    name the annotation and position it
+    '''
+    # get the name for annotation
+    ann_name_label = model_name.rsplit('_', 1)[0]
+    ann_name = f"{ann_name_label}_ann"
+
+    if mc.objExists(ann_name):
+        button = mc.confirmDialog(
+            title=f"The Annotation '{ann_name}' Exists",
+            message=f"The Annotation '{ann_name} already exists in the scene. Are you sure you want to re-create it?",
+            button=["Yes", "No"],
+            defaultButton="No",
+            cancelButton="No",
+            dismissString="No"
+        )
+        if button == "No":
+            return
+        
+        mc.delete(ann_name)
+
+
+    # get the height of the annotation
+    ann_pos_y = model_position[1] * ANNOTATION_HEIGHT_MULTIPLIER
+    annotation_position = model_position
+    annotation_position[1]=ann_pos_y
+   
+    # create annoation
+    ann = mc.annotate(model_name, tx=ann_name_label, p=annotation_position)
+    ann_transform = mc.listRelatives(ann, parent=True)
+
+    # rename annotation in the Outliner
+    ann = mc.rename(ann_transform, ann_name)
 
 
 def _get_head_bbox():
@@ -113,25 +157,29 @@ def get_cluster_model():
         mc.delete(CLEAN_MODEL_MOUTH_CORNER)
         model_check.delete_unused_nodes()
 
-    clean_mouth_model = mc.duplicate(head_cut.HEAD_GEOMETRY, n=CLEAN_MODEL_MOUTH_CORNER)
+    cluster_mouth_model = mc.duplicate(head_cut.HEAD_GEOMETRY, n=CLEAN_MODEL_MOUTH_CORNER)
     _set_locked(CLEAN_MODEL_MOUTH_CORNER, False)
     # delete construction history
-    mc.delete(clean_mouth_model, ch=True)
+    mc.delete(cluster_mouth_model, ch=True)
 
     root_parent = mc.listRelatives(head_cut.HEAD_GEOMETRY, parent=True)
     
     if root_parent:
-        mc.parent(clean_mouth_model, world=True)
+        mc.parent(cluster_mouth_model, world=True)
 
     # getting the height of the model
     model_height_bbox = math.ceil(_get_head_bbox()[4])
 
     # calculating the Ty of the duplicate
     clean_mouth_model_pos_y = mc.xform(head_cut.HEAD_GEOMETRY, ws=True, q=True, rp=1)[1] + model_height_bbox*HEIGHT_MULTIPLIER
+    
+    clean_mouth_model_position = [0, clean_mouth_model_pos_y, 0]
 
-    mc.xform(clean_mouth_model, ws=True, t=[0, clean_mouth_model_pos_y, 0])
+    mc.xform(cluster_mouth_model, ws=True, t=clean_mouth_model_position)
 
-    mc.select(clean_mouth_model)
+    _annotate_model(cluster_mouth_model[0], clean_mouth_model_position)
+
+    mc.select(cluster_mouth_model)
 
 
 def call_ss_buddy():
@@ -256,17 +304,17 @@ def make_claster_mask_shapes():
         return 
 
     mask_exists = False
-    mask_obj = []
+    masks_obj = []
 
     for mask_name in MOUTH_MASK_NAMES:
         if mc.objExists(mask_name):
             mask_exists = True
-            mask_obj.append(mask_name)
+            masks_obj.append(mask_name)
 
     if mask_exists > 0:
         button = mc.confirmDialog(
             title="The Mask(s) Exist",
-            message=f"It seems, there are shapes for masking: {mask_obj}. Are you sure you want to re-create them? The modification will be lost.",
+            message=f"It seems, there are shapes for masking: {masks_obj}. Are you sure you want to re-create them? The modification will be lost.",
             button=["Yes", "No"],
             defaultButton="No",
             cancelButton="No",
@@ -274,8 +322,15 @@ def make_claster_mask_shapes():
         )
         if button == "No":
             return
-        else:
+        
+        for mask_obj in masks_obj:
             mc.delete(mask_obj)
+            ann_name_label = mask_obj.rsplit('_', 1)[0]
+            ann_node = f"{ann_name_label}_ann"
+            if mc.objExists(ann_node):
+                mc.delete(ann_node)
+
+
 
     # getting the width of the model 
     model_width_bbox = math.ceil(_get_head_bbox()[5]) 
@@ -284,12 +339,39 @@ def make_claster_mask_shapes():
 
     for model_name in MOUTH_MASK_NAMES:
 
-        new_model = mc.duplicate(previous_model, n = model_name)
+        new_model = ""
+
+        #getting the name of the annotaion node
+        ann_name_label = previous_model.rsplit('_', 1)[0]
+        ann_node = f"{ann_name_label}_ann"
+
+        # we need to disconnect the annotation node then duplicate the model and then connect it again
+        if mc.objExists(ann_node):
+            mc.disconnectAttr(f"{previous_model}Shape.worldMatrix[0]", f"{ann_node}Shape.dagObjectMatrix[0]")
+
+            if mc.objExists(new_model):
+                mc.delete(new_model)
+
+            new_model = mc.duplicate(previous_model, n = model_name)
+            print(new_model)
+            mc.connectAttr(f"{previous_model}Shape.worldMatrix[0]", f"{ann_node}Shape.dagObjectMatrix[0]")
+                    
+
+        if not mc.objExists(new_model[0]):
+            print("dupl one more")
+            new_model = mc.duplicate(previous_model, n = model_name)
+  
         previous_model_position = mc.xform(previous_model, ws=True, q=True, rp=1)
         new_model_pos_x = previous_model_position[0] + model_width_bbox*WIDTH_MULTIPLIER
-        mc.xform(new_model, ws=True, t=[new_model_pos_x, previous_model_position[1], previous_model_position[2]])
+        new_model_position = [new_model_pos_x, previous_model_position[1], previous_model_position[2]]
+
+        mc.xform(new_model, ws=True, t=new_model_position)
         mc.blendShape(previous_model, new_model, topologyCheck=True, w=(0,1), name=f"{model_name}{BLEND_SHAPE}")
-        previous_model = new_model
+
+        _annotate_model(new_model[0], new_model_position)
+        
+        previous_model = new_model[0]
+
 
 
 def make_mouth_corner_shape():
@@ -565,6 +647,12 @@ def make_soft_cluster():
         mc.softSelect(sse=True)
         softElementData = _soft_selection()
         selection = ["%s.vtx[%d]" % (el[0], el[1])for el in softElementData ] 
+
+        #my edit to delete Shape from the name of the cluster, because of annotation it takes the Shape
+        if selectionVrts[0].find("Shape"):
+            selectionVrts[0] = selectionVrts[0].replace("Shape", "")
+            print(selectionVrts[0])
+
         model = selectionVrts[0].split('.')[0]
         mc.select(model, r=True)
         cluster = mc.cluster(name = '%s_cls' % model, relative=False, bindState = True)
@@ -590,6 +678,7 @@ def make_soft_cluster():
             mc.percent(cluster[0], selection[i], v=softElementData[i][2])
 
         mc.select(cluster[1], r=True)
+
 
 def _soft_selection():
 
@@ -638,4 +727,269 @@ def _get_average(selection):
     average.append(aveZ)
 
     return average
+    
+
+def _delete_control(ctl, side):
+    '''
+    delete control if the user pressed 'Yes'
+    '''
+
+    if side.lower().startswith("l"):
+        side = "Left"
+    else:
+        side = "Right"
+
+    button = mc.confirmDialog(
+        title="The Mouth Control(s) Exist",
+        message=f"It seems, the {side} Mouth Corner Control(s) exist(s). Are you sure you want to re-create them?",
+        button=["Yes", "No"],
+        defaultButton="No",
+        cancelButton="No",
+        dismissString="No"
+    )
+
+    if button == "No":
+        return False
+    
+    current_node = ctl
+    while True:
+        parent_node = mc.listRelatives(current_node, parent=True)
+        if parent_node is None:
+            break
+        current_node = parent_node[0]
+
+    mc.delete(current_node)
+    return True
+
+
+def create_mouth_lf_corner_controls():
+    '''
+    create left mouth cornen control
+    '''
+    control_lf = MOUTH_CORNER_CONTROL_NAMES[0]
+
+    if mc.objExists(control_lf) and not _delete_control(control_lf, "Left"):
+        return
+
+    #makes the circle nurbe for the cotnrol
+    mc.circle(n=control_lf)
+    mc.setAttr(f"{control_lf}Shape.overrideEnabled", 1)
+    mc.setAttr(f"{control_lf}Shape.overrideColor", 17)
+    #delete history
+    mc.delete(control_lf, ch=True)
+    #freeze transform
+    mc.makeIdentity(control_lf, apply=True, t=1, r=1, s=1, n=0, pn=1)
+
+    group_name = control_lf.replace(CTL, "")
+
+    #make hierarchy for the face control
+    for grp_end in MOUTH_CONTROL_GROUPS:
+        mc.group(n=f"{group_name}{grp_end}")
+
+
+def create_mouth_rt_corner_controls():
+    '''
+    create the right mouth corner control
+    put the left control group into another group
+    duplicate the newly created group
+    changes Scale X on negative(-X) to position the duplicate for the right side
+    rename for the right side
+    ungroup both controls' hierarchy
+    '''
+    control_rt = MOUTH_CORNER_CONTROL_NAMES[1]
+    control_lf = MOUTH_CORNER_CONTROL_NAMES[0]
+
+    if mc.objExists(control_rt) and not _delete_control(control_rt, "Right"):
+        return
+
+    if not mc.objExists(control_lf):
+        om.MGlobal.displayError(f"The '{control_lf}' don't exist. Please, recreate the left control again.")
+        return
+
+    temp_grp_1 = "grp_1"
+    temp_grp_2 = "grp_2"
+
+    #identify the top group of the left mouth corner control
+    current_node = control_lf
+    while True:
+        parent_node = mc.listRelatives(current_node, parent=True)
+        if parent_node is None:
+            break
+        current_node = parent_node[0]    
+
+    mc.group(current_node, n=temp_grp_1)
+    mc.xform(temp_grp_1, piv=(0, 0, 0), ws=True)
+    mc.duplicate(temp_grp_1, n=temp_grp_2)
+
+    mc.setAttr(f"{temp_grp_2}.scaleX", -1)
+
+    #rename the hierarchy for the right side
+    parent_node = temp_grp_2
+    while True:
+        child_node = mc.listRelatives(parent_node, children=True, fullPath=True)
+        if child_node is None:
+            break
+        child_node = child_node[0]
+        parent_node = mc.rename(child_node, child_node.rsplit('|', 1)[-1].replace("Lf", "Rt"))
+
+    mc.ungroup(temp_grp_1)
+    mc.ungroup(temp_grp_2)
+
+
+def connect_control_to_face():
+    '''
+    connect the controls to the face
+    '''
+    obj_selected = mc.ls(selection=True)
+    
+    if not obj_selected:
+        om.MGlobal.displayError("Please select the vert then the control for the left and then for the right side")
+        return 
+
+    verts = mc.filterExpand(sm=31)
+    nurbs = mc.filterExpand(sm=9)
+
+    if not verts or not nurbs:
+        om.MGlobal.displayError("Please select the verts and the controls ONLY")
+        return
+
+    if len(obj_selected) != 4:
+        om.MGlobal.displayError("Please select 2 verts and 2 controls ONLY")
+        return
+
+    for vert in verts:
+
+        fascia_name = vert.rsplit('.', 1)[0]
+        follicle_fascia = ""
+
+        if fascia_name != structure.FASCIA_GROUP[6]:
+            follicle_fascia = structure.FASCIA_GROUP[6]
+
+        vert = vert.replace(fascia_name, follicle_fascia)
+
+
+    vert_lf = obj_selected[0]
+    ctl_lf = obj_selected[1]
+    vert_rt = obj_selected[2]
+    ctl_rt = obj_selected[3]
+
+    fascia_name = vert_lf.rsplit('.', 1)[0]
+    follicle_fascia = ""
+
+    if fascia_name != structure.FASCIA_GROUP[6]:
+        follicle_fascia = structure.FASCIA_GROUP[6]
+
+    vert_lf = obj_selected[0].replace(fascia_name, follicle_fascia)
+    vert_rt = obj_selected[2].replace(fascia_name, follicle_fascia)
+
+    obj_selected[0] = vert_lf
+    obj_selected[2] = vert_rt
+
+    _glueControl(obj_selected[:2])
+    _glueControl(obj_selected[2:])
+
+    _put_control_under_motion(ctl_lf)
+    _put_control_under_motion(ctl_rt)
+
+
+def _put_control_under_motion(ctl):
+
+    top_parent = ctl
+    while True:
+        parent_node = mc.listRelatives(top_parent, parent=True)
+        if parent_node is None:
+            break
+        top_parent = parent_node[0]
+
+    mc.parent(top_parent, structure.CONTROLS_GROUP[0])
+
+
+def _glueControl(selection):
+    
+    if len(selection) == 2:
+        
+        #virables
+        vertex = selection[0]
+        vertex_id = int(selection[0].split('[')[1][:-1])
+        mesh = selection[0].split('.')[0]
+        name = selection[1][:-4]
+        
+        #snap the control to the right location
+        vert_pos = mc.xform(vertex, q=True, t=True, ws=True)
+        mc.xform('%s_grp' % name, t = vert_pos, ws = True)
+        
+        #create follicle
+        fol = _createFollicle('%s_fol' % name, mesh, vertex_id, parent = None)
+
+        #put follicle under Follicle_grp and make it hidden
+        mc.parent(fol[0], structure.DONT_GROUP[4])
+        mc.setAttr(f"{fol[0]}.visibility", 0)
+        
+        #attach the control to the follcle
+        mc.pointConstraint(fol[0], '%s_sdk' % name)
+        
+        
+        #negate control
+        _negateControl('%s_ctl' % name)
+
+
+def _createFollicle(name, mesh, vertex, parent = None):
+    follicle = name
+    follicleShape = mc.createNode('follicle', n='%sShape' % name)
+    mc.connectAttr('%s.outMesh' % mesh, '%s.inputMesh' % follicleShape)
+    mc.connectAttr('%s.worldMatrix[0]' % mesh, '%s.inputWorldMatrix' % follicleShape)
+    mc.connectAttr('%s.outRotate' % follicleShape, '%s.rotate' % follicle)
+    mc.connectAttr('%s.outTranslate' % follicleShape, '%s.translate' % follicle)
+    uv = _getUVFromVertexIndex(mesh, vertex)
+    mc.setAttr('%s.parameterU' % follicleShape, uv[0])
+    mc.setAttr('%s.parameterV' % follicleShape, uv[1])
+    if parent:
+        mc.parent(follicle, parent)
+    return follicle, follicleShape
+    
+
+def _getUVFromVertexIndex(mesh, vertex):
+    mc.select('%s.vtx[%s]' % (mesh, vertex), r = True)
+    mc.ConvertSelectionToUVs()
+    uvs = mc.polyEditUV(q=True)
+    mc.select(clear = True)
+    return uvs[0], uvs[1]
+
+
+def _negateControl(ctrl):
+    parentNode = mc.listRelatives(ctrl, p = True)
+    if parentNode:
+        trnMultiplyDivide = mc.createNode('multiplyDivide', name = '%s_neg_md' % ctrl)
+        for letter in ['X','Y','Z']:
+            mc.connectAttr('%s.translate%s' % (ctrl, letter), '%s.input1%s' % (trnMultiplyDivide, letter))
+            mc.connectAttr('%s.output%s' % (trnMultiplyDivide, letter), '%s.translate%s' % (parentNode[0], letter))
+            mc.setAttr('%s.input2%s' % (trnMultiplyDivide, letter), -1)
+
+
+def put_ready_shapes_under_shapes_group():
+    pass
+
+def make_wip_mouth_corners_group():
+
+    mouth_corner_grp = mc.ls(f"{MOUTH_CORNER}*", transforms=True)
+
+    for i in range(len(mouth_corner_grp)-1, -1, -1):
+            mouth_corner = mouth_corner_grp[i]
+            parent = mc.listRelatives(mouth_corner, parent=True)
+            if parent:
+                del mouth_corner_grp[i]
+
+    if not mc.objExists(MOUTH_CLUSTER_GROUP):
+        mc.group(mouth_corner_grp, n=MOUTH_CLUSTER_GROUP)
+        mc.setAttr(f"{MOUTH_CLUSTER_GROUP}.visibility", 0)
+    else:
+        for mouth_corner in mouth_corner_grp:
+            parent = mc.listRelatives(mouth_corner, parent=True)
+            if parent:
+                if MOUTH_CLUSTER_GROUP not in parent:
+                    mc.parent(mouth_corner, MOUTH_CLUSTER_GROUP)
+            else: 
+                mc.parent(mouth_corner, MOUTH_CLUSTER_GROUP)
+
+
     

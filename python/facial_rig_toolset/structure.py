@@ -10,6 +10,7 @@ reload(body_head_blend)
 MAIN_GROUP = "Face"
 FACE_GROUP = ["Model", "Motion", "Dont"] 
 DONT_GROUP = ["Fascia_grp", "Shapes_grp", "Infs_grp", "Deformers_grp", "Follicles_grp", "Eyelid_Setup_grp", "Clusters_grp"]
+CONTROLS_GROUP = ["Controls_grp"]
 FASCIA_GROUP = ["Face_Shapes_geo", "Face_Infs_Local_geo", "Face_Infs_Broad_geo", "Face_Clusters_geo", "Face_Joints_geo", "Face_Deformers_geo", "Face_Follicles_geo", "Face_Wrap_geo"]
 EYELID_SETUP_GROUP = ["Eyelid_Curves_grp","Eyelid_Locators_grp"]
 HEAD_JNT = "_head_jnt"
@@ -66,7 +67,6 @@ def _build_fascia_layers(list_of_names, grp_to_parent):
     fascia_first_layer = list_of_names[0:4]
     fascia_other_layers = list_of_names[4:] 
     
-    print(fascia_first_layer)
     _connecting_fascia_layers(fascia_first_layer, list_of_names[4])
 
     for i in range(len(fascia_other_layers)):
@@ -115,5 +115,7 @@ def build_structure():
 
     _name_and_parent_groups(FACE_GROUP, MAIN_GROUP)
     _name_and_parent_groups(DONT_GROUP, FACE_GROUP[2])
+    _name_and_parent_groups(CONTROLS_GROUP, FACE_GROUP[1])
     _build_fascia_layers(FASCIA_GROUP, DONT_GROUP[0])
     _name_and_parent_groups(EYELID_SETUP_GROUP, DONT_GROUP[5])
+

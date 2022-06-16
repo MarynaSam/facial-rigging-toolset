@@ -88,7 +88,13 @@ class SubWindow(QWidget):
         self.group_box_body_head_blend = QGroupBox("Body Head Blend")
         self.group_box_structure = QGroupBox("Structure")
         self.group_box_jaw_rig = QGroupBox("Jaw Rig")
-        self.group_box_mouth = QGroupBox("Mouth")
+
+        self.group_box_mouth = QGroupBox("Mouth Corners")
+        self.group_box_mouth_controls = QGroupBox("Mouth Corners Controls")
+        self.group_box_mouth_cluster = QGroupBox("Mouth Corners Cluster")
+        self.group_box_mouth_shapes = QGroupBox("Mouth Corners Shapes")
+        self.group_box_mouth_clean_up = QGroupBox("Mouth Corners Clean Up")
+
         self.group_box_lips = QGroupBox("Lips")
 
 
@@ -253,8 +259,31 @@ class SubWindow(QWidget):
             "<div><b>!IMPORTANT!</b> Don't select <b>combo</b> shapes</div>")
         self.button_flip_shapes.setStyleSheet('QToolTip { min-width: 300px; }')
 
-        self.button_create_mouth_corner_control = QPushButton("Create Mouth Corner Control")
+        self.button_put_shapes = QPushButton("Put Shapes Under Shapes Group")
+        self.button_put_shapes.setToolTip(
+            "<div>Put the ready shapes under Shapes_grp</div>")
+        self.button_put_shapes.setStyleSheet('QToolTip { min-width: 300px; }')
+
+        self.button_create_mouth_lf_corner_control = QPushButton("Create Mouth Corner Lf Control")
+        self.button_create_mouth_lf_corner_control.setToolTip(
+            "<div>Create the control for the left mouth corner</div>"
+            )
+
+        self.button_create_mouth_lf_corner_control.setStyleSheet('QToolTip { min-width: 300px; }')
+
+        self.button_create_mouth_rt_corner_control = QPushButton("Create Mouth Corner Rt Control")
+        self.button_create_mouth_rt_corner_control.setToolTip(
+            "<div>Create the control for the right mouth corner</div>"
+            )
+        self.button_create_mouth_rt_corner_control.setStyleSheet('QToolTip { min-width: 300px; }')
+
         self.button_connect_control_to_face = QPushButton("Connect Control To Face")
+        self.button_connect_control_to_face.setToolTip(
+            "<div>1) Selet the <b>vert</b> then the <b>control</b> for the <b>Left</b> then the <b>Right</b> sides</div>"
+            "<div>2) Worn on <b>Face_Follicles_geo</b></div>"
+            "<div><b>!IMPORTANT!</b>The pattern is <b>vert-> left control->vert->right control</b></div>")
+        self.button_connect_control_to_face.setStyleSheet('QToolTip { min-width: 300px; }')
+
         self.button_wip_group_mouth_corner = QPushButton("Make WIP Mouth Corner Group")
         self.button_clean_unused_shapes = QPushButton("Delete Unused Shapes")
 
@@ -271,7 +300,6 @@ class SubWindow(QWidget):
         layout.addWidget(self.group_box_mouth)
         
         layout.addWidget(self.group_box_lips)
-        
         
         self.setLayout(layout)
 
@@ -297,12 +325,15 @@ class SubWindow(QWidget):
         layout.addWidget(self.button_model_check)
         layout.addWidget(self.button_check_symmetry)
 
+
         layout = QVBoxLayout(self.group_box_assign_material)
         layout.addWidget(self.combo_box_assing_material)
         layout.addWidget(self.button_assign_material)
 
+
         layout = QVBoxLayout(self.group_box_head_cut)
         layout.addWidget(self.button_head_cut)
+
 
         layout = QVBoxLayout(self.group_box_body_head_blend)
         layout.addWidget(self.button_joint_label)
@@ -310,10 +341,12 @@ class SubWindow(QWidget):
         layout.addWidget(self.button_body_head_transfer_skinweight)
         layout.addWidget(self.button_body_head_blend)
 
+
         layout = QVBoxLayout(self.group_box_structure)
         layout.addWidget(self.button_build_structure)
         layout.addWidget(self.button_parent_mesh)
         layout.addWidget(self.button_parent_joints)
+
 
         layout = QVBoxLayout(self.group_box_jaw_rig)
         layout.addWidget(self.button_build_guides)
@@ -323,19 +356,34 @@ class SubWindow(QWidget):
         
         layout = QVBoxLayout(self.group_box_mouth)
         layout.addWidget(self.button_clean_model)
-        layout.addWidget(self.button_cluster_model)
-        layout.addWidget(self.button_ss_buddy)
-        layout.addWidget(self.button_soft_cluster)
-        layout.addWidget(self.button_shapes_for_cluster)
-        layout.addWidget(self.button_cluster_mask_shapes)
-        layout.addWidget(self.button_shapes_for_mouth)
-        layout.addWidget(self.button_combo_shapes)
-        layout.addWidget(self.button_right_side_shapes)
-        layout.addWidget(self.button_flip_shapes)
-        layout.addWidget(self.button_create_mouth_corner_control)
-        layout.addWidget(self.button_connect_control_to_face)
-        layout.addWidget(self.button_wip_group_mouth_corner)
-        layout.addWidget(self.button_clean_unused_shapes)
+
+        layout.addWidget(self.group_box_mouth_controls)
+        layout.addWidget(self.group_box_mouth_cluster)
+        layout.addWidget(self.group_box_mouth_shapes)
+        layout.addWidget(self.group_box_mouth_clean_up)
+
+        layout_controls = QVBoxLayout(self.group_box_mouth_controls)
+        layout_controls.addWidget(self.button_create_mouth_lf_corner_control)
+        layout_controls.addWidget(self.button_create_mouth_rt_corner_control)
+        layout_controls.addWidget(self.button_connect_control_to_face)
+
+        layout_cluster = QVBoxLayout(self.group_box_mouth_cluster)
+        layout_cluster.addWidget(self.button_cluster_model)
+        layout_cluster.addWidget(self.button_ss_buddy)
+        layout_cluster.addWidget(self.button_soft_cluster)
+        layout_cluster.addWidget(self.button_shapes_for_cluster)
+        layout_cluster.addWidget(self.button_cluster_mask_shapes)
+
+        layout_mouth_shapes = QVBoxLayout(self.group_box_mouth_shapes)
+        layout_mouth_shapes.addWidget(self.button_shapes_for_mouth)
+        layout_mouth_shapes.addWidget(self.button_combo_shapes)
+        layout_mouth_shapes.addWidget(self.button_right_side_shapes)
+        layout_mouth_shapes.addWidget(self.button_flip_shapes)
+        layout_mouth_shapes.addWidget(self.button_put_shapes)
+
+        layout_mouth_clean_up = QVBoxLayout(self.group_box_mouth_clean_up)
+        layout_mouth_clean_up.addWidget(self.button_wip_group_mouth_corner)
+        layout_mouth_clean_up.addWidget(self.button_clean_unused_shapes)
 
         layout = QVBoxLayout(self.group_box_lips)
 
@@ -371,8 +419,10 @@ class SubWindow(QWidget):
         self.button_combo_shapes.clicked.connect(self._on_button_combo_shapes_clicked)
         self.button_right_side_shapes.clicked.connect(self._on_button_right_side_shapes_clicked)
         self.button_flip_shapes.clicked.connect(self._on_button_flip_shapes_clicked)
+        self.button_put_shapes.clicked.connect(self._on_button_put_shapes_clicked)
         self.button_clean_unused_shapes.clicked.connect(self._on_button_clean_unused_shapes_clicked)
-        self.button_create_mouth_corner_control.clicked.connect(self._on_button_create_mouth_corner_control_clicked)
+        self.button_create_mouth_lf_corner_control.clicked.connect(self._on_button_create_mouth_lf_corner_control_clicked)
+        self.button_create_mouth_rt_corner_control.clicked.connect(self._on_button_create_mouth_rt_corner_control_clicked)
         self.button_connect_control_to_face.clicked.connect(self._on_button_connect_control_to_face_clicked)
         self.button_wip_group_mouth_corner.clicked.connect(self._on_button_wip_group_mouth_corner_clicked)
 
@@ -456,21 +506,51 @@ class SubWindow(QWidget):
         except RuntimeError as e:
             om.MGlobal.displayError(str(e))
 
+            
+    def _on_button_put_shapes_clicked(self):
+        try:
+            mouth_corners.put_ready_shapes_under_shapes_group()
 
-    def _on_button_clean_unused_shapes_clicked(self):
-        pass
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
 
 
-    def _on_button_create_mouth_corner_control_clicked(self):
-        pass
+    def _on_button_create_mouth_lf_corner_control_clicked(self):
+        try:
+            mouth_corners.create_mouth_lf_corner_controls()
+
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
+
+    def _on_button_create_mouth_rt_corner_control_clicked(self):
+        try:
+            mouth_corners.create_mouth_rt_corner_controls()
+
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
 
 
     def _on_button_connect_control_to_face_clicked(self):
+        try:
+            mouth_corners.connect_control_to_face()
+
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
+
+
+    def _on_button_wip_group_mouth_corner_clicked(self):
+        try:
+            mouth_corners.make_wip_mouth_corners_group()
+
+        except RuntimeError as e:
+            om.MGlobal.displayError(str(e))
+
+
+    def _on_button_clean_unused_shapes_clicked(self):
         pass
     
 
-    def _on_button_wip_group_mouth_corner_clicked(self):
-        pass
+
 
 
     def _on_button_model_check_clicked(self):

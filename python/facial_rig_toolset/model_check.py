@@ -288,7 +288,6 @@ def set_material(material_type, material_parms):
     shader = f"{material_type}_mat"
     sg = f"{material_type}_sg"
 
-
     if not faces:
         om.MGlobal.displayError("Please select the faces")
         return
